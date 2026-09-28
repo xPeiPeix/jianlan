@@ -9,6 +9,14 @@
 - 本次改变发布签名、版本与分发方式，四平台功能沿用 0.2.1。0.2.2 尚未重新安装到真机；下文的手机验证属于 0.2.1，不是新发布包的完整回归。
 - 本地下载页在桌面和 390 / 320 像素宽屏幕检查通过，无横向溢出、图片缺失。
 
+## 公开分发验证
+
+- [GitHub 首页](https://github.com/xPeiPeix/jianlan)可匿名访问，显示项目介绍、四平台界面示意、APK 下载和反馈入口。
+- [0.2.2 Release](https://github.com/xPeiPeix/jianlan/releases/tag/v0.2.2)已公开，标记为早期试用，附件包括 APK 与 `SHA256SUMS`。
+- [下载页](https://xpeipeix.github.io/jianlan/)通过 HTTPS 返回 200；桌面和 390 像素手机宽度下的页面与图标正常，实际点击按钮触发下载。
+- 从公开下载链接匿名重新获取 APK 和校验文件，`shasum -a 256 -c SHA256SUMS` 通过，与本机发布包哈希一致。
+- GitHub Pages 从 `gh-pages` 根目录发布，[首次部署](https://github.com/xPeiPeix/jianlan/actions/runs/36400342392)成功。
+
 ## 0.2.1 真机验证版本
 
 - 安装包：`dist/jianlan-0.2.1.apk`，`versionCode=3`，包名 `dev.peipei.jianlan`，调试签名。
