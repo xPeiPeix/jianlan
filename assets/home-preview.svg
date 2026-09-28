@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="674" viewBox="0 0 340 674" role="img" aria-labelledby="title desc">
+  <title id="title">简览首页界面示意</title>
+  <desc id="desc">简览首页包含抖音、哔哩哔哩、知乎和微博四个入口，以及反馈问题按钮。</desc>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; }
+    .name { font-size:21px;font-weight:700; }
+    .detail { font-size:11px;fill:#646e68; }
+    .open { font-size:12px;font-weight:600; }
+    .arrow { fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round; }
+  </style>
+  <rect width="340" height="674" fill="#f6f7f3"/>
+  <rect x="1" y="1" width="338" height="632" rx="45" fill="#242825" stroke="#161c18" stroke-width="2"/>
+  <rect x="4" y="4" width="332" height="626" rx="42" fill="none" stroke="#6a706b"/>
+  <rect x="11" y="11" width="318" height="612" rx="34" fill="#f6f7f3"/>
+  <g transform="translate(27 38)">
+    <text y="11" font-size="11" fill="#176b5b">一处打开 · 轻松浏览</text>
+    <text y="52" font-size="36" font-weight="700" fill="#1b2a26">简览</text>
+    <text y="88" font-size="15" fill="#1b2a26">常看的内容，放在一起。</text>
+  </g>
+  <g transform="translate(27 157)" color="#1b2a26">
+    <rect width="137.5" height="157" rx="20" fill="#fff" stroke="#e0e6df"/>
+    <text class="name" x="12" y="37" fill="currentColor">抖音</text>
+    <text class="detail" x="12" y="62">短视频与关注</text>
+    <text class="open" x="48" y="135" fill="currentColor">打开</text>
+    <path class="arrow" d="m82 135 7-7m-7 0h7v7"/>
+  </g>
+  <g transform="translate(175.5 157)" color="#a1425e">
+    <rect width="137.5" height="157" rx="20" fill="#fff" stroke="#e0e6df"/>
+    <text class="name" x="12" y="37" fill="currentColor">哔哩哔哩</text>
+    <text class="detail" x="12" y="62">搜索与观看视频</text>
+    <text class="open" x="48" y="135" fill="currentColor">打开</text>
+    <path class="arrow" d="m82 135 7-7m-7 0h7v7"/>
+  </g>
+  <g transform="translate(27 325)" color="#2367c1">
+    <rect width="137.5" height="157" rx="20" fill="#fff" stroke="#e0e6df"/>
+    <text class="name" x="12" y="37" fill="currentColor">知乎</text>
+    <text class="detail" x="12" y="62">问题、回答与文章</text>
+    <text class="open" x="48" y="135" fill="currentColor">打开</text>
+    <path class="arrow" d="m82 135 7-7m-7 0h7v7"/>
+  </g>
+  <g transform="translate(175.5 325)" color="#b4472a">
+    <rect width="137.5" height="157" rx="20" fill="#fff" stroke="#e0e6df"/>
+    <text class="name" x="12" y="37" fill="currentColor">微博</text>
+    <text class="detail" x="12" y="62">动态与热门话题</text>
+    <text class="open" x="48" y="135" fill="currentColor">打开</text>
+    <path class="arrow" d="m82 135 7-7m-7 0h7v7"/>
+  </g>
+  <g font-size="11" fill="#69746f">
+    <text x="27" y="514">试用版 · 默认开启广告过滤</text>
+    <text x="27" y="535">发现漏过的广告或页面异常，可以反馈给我。</text>
+  </g>
+  <rect x="27" y="557" width="286" height="41" rx="6" fill="none" stroke="#99b7ac"/>
+  <text x="170" y="582" font-size="13" font-weight="600" fill="#176b5b" text-anchor="middle">反馈问题</text>
+  <text x="170" y="662" font-size="13" fill="#69746f" text-anchor="middle">界面示意</text>
+</svg>
