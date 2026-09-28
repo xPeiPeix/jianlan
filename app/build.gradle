@@ -1,5 +1,11 @@
 plugins { id 'com.android.application' }
 
+def releaseStoreFile = System.getenv('JIANLAN_STORE_FILE')
+def releaseStorePassword = System.getenv('JIANLAN_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('JIANLAN_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('JIANLAN_KEY_PASSWORD')
+def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it }
+
 android {
     buildFeatures { buildConfig true }
     namespace 'dev.peipei.jianlan'
@@ -9,13 +15,40 @@ android {
         applicationId 'dev.peipei.jianlan'
         minSdk 26
         targetSdk 36
-        versionCode 3
-        versionName '0.2.1'
+        versionCode 4
+        versionName '0.2.2'
+    }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            debuggable false
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+def verifyReleaseSigning = tasks.register('verifyReleaseSigning') {
+    doLast {
+        if (!hasReleaseSigning || !file(releaseStoreFile).isFile()) {
+            throw new GradleException('Release signing is missing. Run bash scripts/build-release.sh to load or create the local signing key.')
+        }
+    }
+}
+tasks.configureEach {
+    if (name == 'preReleaseBuild') dependsOn verifyReleaseSigning
 }
 
 dependencies { implementation 'androidx.webkit:webkit:1.14.0' }

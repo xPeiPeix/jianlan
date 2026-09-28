@@ -5,3 +5,9 @@ local.properties
 dist/
 .DS_Store
 .playwright-cli/
+*.keystore
+*.jks
+*.p12
+.env
+.env.*
+docs/linuxdo-post-*.md

@@ -1,0 +1,28 @@
+name: 试用问题反馈
+description: 页面异常、无法播放、漏过的广告或正常内容被隐藏
+title: "[反馈] "
+body:
+  - type: textarea
+    id: feedback
+    attributes:
+      label: 问题与设备信息
+      description: 可将简览「反馈问题」生成的文字直接粘贴到这里。
+      placeholder: 版本、手机型号、Android / WebView 版本、发生问题的平台，以及具体操作步骤。
+    validations:
+      required: true
+  - type: dropdown
+    id: filtering
+    attributes:
+      label: 关闭过滤并刷新后是否恢复？
+      options:
+        - 还没有测试
+        - 恢复正常
+        - 问题仍然存在
+        - 与网页过滤无关
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图或补充说明（可选）
+      description: 请先遮住账号、手机号等个人信息，不要提交 Cookie、密码或验证码。

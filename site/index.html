@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f3">
+  <meta name="description" content="简览 Android 试用版：在一个 App 里打开抖音、哔哩哔哩、知乎和微博，过滤部分明确标记的广告。下载 APK，查看更新，反馈使用问题。">
+  <title>简览 — 常看的内容，放在一起。</title>
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a class="brand" href="./" aria-label="简览首页">
+        <img src="./assets/icon.svg" width="44" height="44" alt="">
+        <span>简览</span>
+      </a>
+      <nav aria-label="主要导航">
+        <a href="https://github.com/xPeiPeix/jianlan">GitHub</a>
+        <a href="https://github.com/xPeiPeix/jianlan/issues">反馈问题</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <div class="intro">
+          <h1 id="title">常看的内容，<br>放在一起。</h1>
+          <p class="description">在一个 App 里打开抖音、<span class="keep-word">哔哩哔哩</span>、知乎和微博，过滤部分明确标记的广告。</p>
+          <div class="download">
+            <a class="primary" href="https://github.com/xPeiPeix/jianlan/releases/download/v0.2.2/jianlan-0.2.2.apk" aria-label="下载简览 0.2.2 Android APK">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              下载 Android APK
+            </a>
+            <a class="text-link release-link" href="https://github.com/xPeiPeix/jianlan/releases/tag/v0.2.2">查看更新说明</a>
+            <p class="version">v0.2.2 <span aria-hidden="true">·</span> 约 1 MB <span aria-hidden="true">·</span> <span class="keep-word">Android 8.0 及以上</span> <span aria-hidden="true">·</span> <span class="keep-word">早期试用版</span></p>
+          </div>
+          <p class="limitation">网页功能和登录要求由各平台决定，暂不能替代完整客户端。</p>
+        </div>
+
+        <figure class="preview" aria-label="简览首页界面示意，包含抖音、哔哩哔哩、知乎和微博四个入口">
+          <div class="phone" aria-hidden="true">
+            <div class="screen">
+              <div class="app-eyebrow">一处打开 · 轻松浏览</div>
+              <div class="app-title">简览</div>
+              <div class="app-intro">常看的内容，放在一起。</div>
+              <div class="app-grid">
+                <div class="app-card douyin">
+                  <div class="app-name">抖音</div>
+                  <div class="app-detail">短视频与关注</div>
+                  <div class="app-open">打开 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></div>
+                </div>
+                <div class="app-card bilibili">
+                  <div class="app-name">哔哩哔哩</div>
+                  <div class="app-detail">搜索与观看视频</div>
+                  <div class="app-open">打开 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></div>
+                </div>
+                <div class="app-card zhihu">
+                  <div class="app-name">知乎</div>
+                  <div class="app-detail">问题、回答与文章</div>
+                  <div class="app-open">打开 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></div>
+                </div>
+                <div class="app-card weibo">
+                  <div class="app-name">微博</div>
+                  <div class="app-detail">动态与热门话题</div>
+                  <div class="app-open">打开 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></div>
+                </div>
+              </div>
+              <div class="app-note">试用版 · 默认开启广告过滤<br>发现漏过的广告或页面异常，可以反馈给我。</div>
+              <div class="app-feedback">反馈问题</div>
+            </div>
+          </div>
+          <figcaption>界面示意</figcaption>
+        </figure>
+      </section>
+
+      <section class="guide" aria-label="安装与反馈">
+        <div>
+          <h2>安装很简单</h2>
+          <p>下载 APK 后打开安装。首次安装时，按 Android 提示允许本次安装来源。</p>
+          <p class="install-note">已安装 0.2.1 调试版？签名不同，需先卸载旧版再安装；旧版的登录状态和设置会被清除。</p>
+          <a class="checksum-link" href="https://github.com/xPeiPeix/jianlan/releases/download/v0.2.2/SHA256SUMS">下载 SHA-256 校验文件</a>
+        </div>
+        <div>
+          <h2>一起把问题找出来</h2>
+          <p>发现广告漏过、页面错位或播放异常，可以在 App 内选择「反馈问题」，再复制到 GitHub Issues。</p>
+          <a class="text-link feedback-link" href="https://github.com/xPeiPeix/jianlan/issues/new/choose">提交问题 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>简览 · 一个还在慢慢打磨的小工具</span>
+      <span>各平台名称仅用于说明支持的入口</span>
+    </footer>
+  </div>
+</body>
+</html>

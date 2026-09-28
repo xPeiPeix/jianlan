@@ -8,5 +8,8 @@ export ANDROID_USER_HOME="${ANDROID_USER_HOME:-$project_root/.local/android}"
 gradle_bin="${GRADLE_BIN:-$project_root/gradlew}"
 "$gradle_bin" --console=plain :app:assembleDebug :app:lintDebug "$@"
 mkdir -p dist
-cp app/build/outputs/apk/debug/app-debug.apk dist/jianlan-0.2.1.apk
-shasum -a 256 dist/jianlan-0.2.1.apk
+version="$(sed -n "s/^[[:space:]]*versionName '\([^']*\)'.*/\1/p" app/build.gradle)"
+if [[ -z "$version" ]]; then echo 'Missing versionName in app/build.gradle' >&2; exit 1; fi
+apk="dist/jianlan-$version-debug.apk"
+cp app/build/outputs/apk/debug/app-debug.apk "$apk"
+shasum -a 256 "$apk"
