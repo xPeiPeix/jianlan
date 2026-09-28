@@ -3,6 +3,10 @@ package dev.peipei.jianlan;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
+import android.content.Intent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.ActivityNotFoundException;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -10,7 +14,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
@@ -26,6 +29,7 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.EditText;
 import androidx.webkit.ScriptHandler;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
@@ -38,11 +42,17 @@ public final class MainActivity extends Activity {
     private static final int PAPER = Color.rgb(246, 247, 243);
     private static final int INK = Color.rgb(27, 42, 38);
     private static final int GREEN = Color.rgb(23, 107, 91);
-    private static final String DOUYIN = "https://www.douyin.com/?recommend=1&from_nav=1";
-    private static final String BILIBILI = "https://m.bilibili.com/";
+    private static final Site[] SITES = {
+        new Site("抖音", "短视频与关注", "https://www.douyin.com/?recommend=1&from_nav=1", INK, true),
+        new Site("哔哩哔哩", "搜索与观看视频", "https://m.bilibili.com/", Color.rgb(161, 66, 94), false),
+        new Site("知乎", "问题、回答与文章", "https://www.zhihu.com/explore", Color.rgb(35, 103, 193), false),
+        new Site("微博", "动态与热门话题", "https://m.weibo.cn/", Color.rgb(180, 71, 42), false)
+    };
     private static final Set<String> ORIGINS = Set.of(
         "https://*.douyin.com", "https://douyin.com", "https://*.iesdouyin.com",
-        "https://*.bilibili.com", "https://bilibili.com");
+        "https://*.bilibili.com", "https://bilibili.com",
+        "https://*.zhihu.com", "https://zhihu.com",
+        "https://*.weibo.com", "https://weibo.com", "https://*.weibo.cn", "https://weibo.cn");
     private WebView web;
     private LinearLayout browser;
     private ScrollView home;
@@ -51,11 +61,22 @@ public final class MainActivity extends Activity {
     private Button cleanButton;
     private ProgressBar progress;
     private SharedPreferences prefs;
-    private String cleaner, mobileUa, site = "";
-    private boolean enabled, desktop, earlyScript;
+    private String cleaner, mobileUa;
+    private Site site;
+    private boolean enabled, desktop, earlyScript, clearHistoryOnLoad;
     private ScriptHandler scriptHandler;
     private View fullscreen;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
+
+    private static final class Site {
+        final String name, description, url;
+        final int accent;
+        final boolean desktop;
+        Site(String name, String description, String url, int accent, boolean desktop) {
+            this.name = name; this.description = description; this.url = url;
+            this.accent = accent; this.desktop = desktop;
+        }
+    }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -100,47 +121,55 @@ public final class MainActivity extends Activity {
         home = new ScrollView(this);
         LinearLayout column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
-        column.setPadding(dp(24), dp(42), dp(24), dp(30));
+        column.setPadding(dp(20), dp(24), dp(20), dp(24));
         TextView eyebrow = label("一处打开 · 轻松浏览", 13, GREEN);
         column.addView(eyebrow);
-        TextView heading = label("简览", 42, INK);
+        TextView heading = label("简览", 36, INK);
         heading.setTypeface(null, Typeface.BOLD);
         column.addView(heading);
         TextView intro = label("常看的内容，放在一起。", 17, INK);
-        intro.setPadding(0, dp(12), 0, dp(32));
+        intro.setPadding(0, dp(8), 0, dp(24));
         column.addView(intro);
-        column.addView(siteCard("抖音", "短视频、搜索与关注", "打开抖音", DOUYIN, INK));
-        column.addView(siteCard("哔哩哔哩", "搜索视频，继续观看", "打开 B 站", BILIBILI, Color.rgb(161, 66, 94)));
-        TextView note = label("默认开启广告过滤，可随时关闭。\n账号直接在网站登录，下次打开仍可继续使用。", 13, Color.rgb(105, 116, 111));
+        for (int index = 0; index < SITES.length; index += 2) {
+            LinearLayout row = new LinearLayout(this);
+            for (int offset = 0; offset < 2 && index + offset < SITES.length; offset++) {
+                LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(0, dp(172), 1);
+                if (offset == 0) layout.rightMargin = dp(12);
+                row.addView(siteCard(SITES[index + offset]), layout);
+            }
+            LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-1, -2);
+            layout.bottomMargin = dp(12);
+            column.addView(row, layout);
+        }
+        TextView note = label("试用版 · 默认开启广告过滤\n发现漏过的广告或页面异常，可以反馈给我。", 13, Color.rgb(105, 116, 111));
         note.setLineSpacing(dp(5), 1);
-        note.setPadding(0, dp(28), 0, 0);
+        note.setPadding(0, dp(12), 0, dp(8));
         column.addView(note);
+        column.addView(button("反馈问题", v -> showFeedback()), new LinearLayout.LayoutParams(-1, dp(48)));
         home.addView(column);
         stage.addView(home, new FrameLayout.LayoutParams(-1, -1));
     }
 
-    private View siteCard(String name, String description, String action, String url, int accent) {
+    private View siteCard(Site entry) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(22), dp(22), dp(22), dp(18));
+        card.setPadding(dp(14), dp(18), dp(14), dp(10));
         GradientDrawable background = new GradientDrawable();
         background.setColor(Color.WHITE);
         background.setCornerRadius(dp(22));
         background.setStroke(dp(1), Color.rgb(224, 230, 223));
         card.setBackground(background);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-        params.bottomMargin = dp(16);
-        card.setLayoutParams(params);
-        TextView nameView = label(name, 25, accent);
+        TextView nameView = label(entry.name, 23, entry.accent);
         nameView.setTypeface(null, Typeface.BOLD);
         card.addView(nameView);
-        TextView detail = label(description, 14, Color.rgb(100, 110, 104));
-        detail.setPadding(0, dp(8), 0, dp(20));
-        card.addView(detail);
-        Button open = button(action + "  ↗", v -> openSite(url));
-        open.setTextColor(accent);
-        card.addView(open, new LinearLayout.LayoutParams(-1, dp(48)));
-        card.setOnClickListener(v -> openSite(url));
+        TextView detail = label(entry.description, 13, Color.rgb(100, 110, 104));
+        detail.setPadding(0, dp(8), 0, 0);
+        card.addView(detail, new LinearLayout.LayoutParams(-1, 0, 1));
+        Button open = button("打开  ↗", v -> openSite(entry));
+        open.setContentDescription("打开" + entry.name);
+        open.setTextColor(entry.accent);
+        card.addView(open, new LinearLayout.LayoutParams(-1, dp(44)));
+        card.setOnClickListener(v -> openSite(entry));
         return card;
     }
 
@@ -192,6 +221,7 @@ public final class MainActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view, String url) {
                 if (isSupported(url)) view.evaluateJavascript(currentScript(), null);
+                if (clearHistoryOnLoad) { view.clearHistory(); clearHistoryOnLoad = false; }
                 CookieManager.getInstance().flush();
                 updateStatus();
             }
@@ -249,15 +279,16 @@ public final class MainActivity extends Activity {
             : mobileUa);
     }
 
-    private void openSite(String url) {
-        site = url.equals(DOUYIN) ? "抖音" : "哔哩哔哩";
-        desktop = prefs.getBoolean("desktop_" + site, url.equals(DOUYIN));
+    private void openSite(Site entry) {
+        site = entry;
+        desktop = prefs.getBoolean("desktop_" + site.name, site.desktop);
         applyUa();
-        title.setText(site);
+        title.setText(site.name);
         home.setVisibility(View.GONE);
         browser.setVisibility(View.VISIBLE);
         web.onResume();
-        web.loadUrl(url);
+        clearHistoryOnLoad = true;
+        web.loadUrl(site.url);
         updateStatus();
     }
 
@@ -276,21 +307,65 @@ public final class MainActivity extends Activity {
     }
 
     private void showMenu() {
-        new AlertDialog.Builder(this).setTitle(site).setItems(new String[]{"刷新页面",
-            desktop ? "切换到手机版网页" : "切换到电脑版网页", "打开此站首页", "关于简览"}, (dialog, which) -> {
+        new AlertDialog.Builder(this).setTitle(site.name).setItems(new String[]{"刷新页面",
+            desktop ? "切换到手机版网页" : "切换到电脑版网页", "打开此站首页", "反馈问题", "关于简览"}, (dialog, which) -> {
                 if (which == 0) web.reload();
                 if (which == 1) {
                     desktop = !desktop;
-                    prefs.edit().putBoolean("desktop_" + site, desktop).apply();
+                    prefs.edit().putBoolean("desktop_" + site.name, desktop).apply();
                     applyUa();
                     web.reload();
                     updateStatus();
                 }
-                if (which == 2) openSite(site.equals("抖音") ? DOUYIN : BILIBILI);
-                if (which == 3) new AlertDialog.Builder(this).setTitle("简览 0.1.0")
+                if (which == 2) openSite(site);
+                if (which == 3) showFeedback();
+                if (which == 4) new AlertDialog.Builder(this).setTitle("简览 " + BuildConfig.VERSION_NAME)
                     .setMessage("把常用网站放进一个应用，并过滤已识别的页面广告。\n\n这是早期体验版。登录、画质和内容权限由各网站提供；视频内创作者口播不会跳过。")
                     .setPositiveButton("知道了", null).show();
         }).show();
+    }
+
+    private void showFeedback() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(24), dp(8), dp(24), 0);
+        TextView hint = label("说说在哪个平台、做了什么、哪里不对。复制或分享后，把反馈发给开发者即可。", 14, INK);
+        form.addView(hint);
+        EditText details = new EditText(this);
+        details.setHint("例如：微博下滑后仍出现推广；关闭过滤后是否恢复正常…");
+        details.setMinLines(4);
+        details.setGravity(Gravity.TOP);
+        details.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        form.addView(details, new LinearLayout.LayoutParams(-1, -2));
+        new AlertDialog.Builder(this).setTitle("反馈问题").setView(form)
+            .setNeutralButton("取消", null)
+            .setNegativeButton("复制", (dialog, which) -> {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(ClipData.newPlainText("简览问题反馈", feedbackText(details.getText().toString())));
+                Toast.makeText(this, "反馈已复制，请粘贴发送给开发者", Toast.LENGTH_SHORT).show();
+            })
+            .setPositiveButton("分享", (dialog, which) -> {
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("text/plain");
+                share.putExtra(Intent.EXTRA_TEXT, feedbackText(details.getText().toString()));
+                try { startActivity(Intent.createChooser(share, "分享问题反馈")); }
+                catch (ActivityNotFoundException error) {
+                    Toast.makeText(this, "没有可用的分享应用，请使用复制", Toast.LENGTH_SHORT).show();
+                }
+            }).show();
+    }
+
+    private String feedbackText(String details) {
+        android.content.pm.PackageInfo engine = WebView.getCurrentWebViewPackage();
+        return "简览问题反馈\n版本：" + BuildConfig.VERSION_NAME
+            + "\n手机：" + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL
+            + "\nAndroid：" + android.os.Build.VERSION.RELEASE
+            + "\nWebView：" + (engine == null ? "未知" : engine.versionName)
+            + "\n平台：" + (browser.getVisibility() == View.VISIBLE && site != null ? site.name : "首页")
+            + "\n过滤：" + (enabled ? "开启" : "关闭")
+            + "\n网页模式：" + (desktop ? "电脑版" : "手机版")
+            + "\n\n问题与重现步骤：\n" + (details.trim().isEmpty() ? "（请补充）" : details.trim())
+            + "\n\n可附截图，请先遮住账号等个人信息。";
     }
 
     private boolean isSupported(String url) {
@@ -299,7 +374,10 @@ public final class MainActivity extends Activity {
         String host = uri.getHost();
         if (!"https".equals(uri.getScheme()) || host == null) return false;
         return host.equals("douyin.com") || host.endsWith(".douyin.com")
-            || host.endsWith(".iesdouyin.com") || host.equals("bilibili.com") || host.endsWith(".bilibili.com");
+            || host.endsWith(".iesdouyin.com") || host.equals("bilibili.com") || host.endsWith(".bilibili.com")
+            || host.equals("zhihu.com") || host.endsWith(".zhihu.com")
+            || host.equals("weibo.com") || host.endsWith(".weibo.com")
+            || host.equals("weibo.cn") || host.endsWith(".weibo.cn");
     }
 
     private void exitFullscreen() {

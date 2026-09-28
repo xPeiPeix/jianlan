@@ -6,10 +6,96 @@
 })(typeof window === 'object' ? window : null, function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.1';
   var MARKER = 'data-jianlan-hidden';
   var LIST_KEYS = new Set(['aweme_list', 'data', 'cards', 'mix_items']);
   var FEED_PATH = /^\/aweme\/v[12]\/(?:web\/)?(?:tab\/feed|feed|follow\/feed|familiar\/feed|module\/feed|aweme\/post|aweme\/related|mix\/aweme|general\/search\/single|search\/item)\/?$/;
+  var ZHIHU_MOBILE_LAYOUT = `
+@media (max-width: 600px) {
+  .ExploreHomePage {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .ExploreHomePage-ContentSection,
+  .ExploreHomePage-ContentSection-header,
+  .ExploreHomePage-ContentSection-body,
+  .ExploreHomePage-square,
+  .ExploreHomePage-specials,
+  .ExploreHomePage-roundtables,
+  .ExploreHomePage-collections,
+  .ExploreHomePage-columns,
+  .ExploreHomePage-specialsLogin,
+  .ExploreHomePage-specialCard,
+  .ExploreHomePage-roundtableCard,
+  .ExploreHomePage-collectionCard,
+  .ExploreHomePage-columnCard {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .ExploreHomePage-square,
+  .ExploreHomePage-specials,
+  .ExploreHomePage-roundtables,
+  .ExploreHomePage-collections,
+  .ExploreHomePage-columns {
+    flex-wrap: wrap !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .ExploreHomePage-square > *,
+  .ExploreHomePage-specials > *,
+  .ExploreHomePage-specialsLogin,
+  .ExploreHomePage-specialCard,
+  .ExploreHomePage-roundtableCard,
+  .ExploreHomePage-collectionCard,
+  .ExploreHomePage-columnCard {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    flex: 0 1 100% !important;
+  }
+
+  .ExploreHomePage-specialsLogin img,
+  .ExploreHomePage-specialCard img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .ExploreHomePage-specialsLoginBottomButton,
+  .ExploreHomePage-specialsLogin button,
+  .ExploreHomePage-specialCard > *,
+  .ExploreHomePage-specialCard [class*="ExploreSpecialCard-"],
+  .ExploreHomePage-roundtableCard [class*="ExploreRoundtableCard-"],
+  .ExploreHomePage-collectionCard [class*="ExploreCollectionCard-"],
+  .ExploreHomePage-columnCard > * {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .ExploreRoundtableCard-headerContainer,
+  .ExploreRoundtableCard-headerBackgrounds {
+    width: 100% !important;
+  }
+
+  .ExploreRoundtableCard-header,
+  .ExploreCollectionCard-header {
+    width: auto !important;
+  }
+}
+`;
 
   function objectValue(value) {
     if (typeof value === 'string') {
@@ -93,6 +179,8 @@
     var host = win.location.hostname;
     var douyin = hostMatches(host, 'douyin.com') || hostMatches(host, 'iesdouyin.com');
     var bilibili = hostMatches(host, 'bilibili.com');
+    var zhihu = hostMatches(host, 'zhihu.com');
+    var weibo = hostMatches(host, 'weibo.com') || hostMatches(host, 'weibo.cn');
     var selectors = douyin ? [
       '[data-e2e="ad-link"]',
       '[data-e2e="feed-item"][data-is-ad="true"]',
@@ -104,29 +192,48 @@
       'a[href="https://www.douyin.com/download"]'
     ] : bilibili ? [
       '.ad-report', '.ad-floor',
-      '.bili-video-card__info--ad',
       '.download-app', '.openapp-dialog',
       '[data-type="download-app"]'
+    ] : zhihu ? [
+      '.TopstoryItem--advertCard', '.MBannerAd', '.MHotFeedAd', '.MRelateFeedAd',
+      '.zhihuAdvert-MBanner', '.WeiboAd-wrap',
+      'div[data-type="ad"]',
+      '.AppBanner', '.MobileAppHeader-downloadLink', '.OpenInAppButton'
+    ] : weibo ? [
+      'div[feedtype="ad"]', 'div[ad-data]:not([ad-data=""])',
+      '#app .ad-wrap',
+      '#app .woo-frame.blog-config-page div.weibo-btn-box'
     ] : [];
 
     function scan() {
       timer = null;
       if (!stats.enabled || !doc.documentElement) return;
       if (style && !style.isConnected) doc.documentElement.appendChild(style);
-      hidden.forEach(function (element) {
-        if (!element.isConnected) { element.removeAttribute(MARKER); hidden.delete(element); }
-      });
+      var targets = new Set();
       selectors.forEach(function (selector) {
         try {
-          doc.querySelectorAll(selector).forEach(function (element) {
-            if (hidden.has(element)) return;
-            // An existing marker belongs to somebody else; never undo their state.
-            if (element.hasAttribute(MARKER)) return;
-            element.setAttribute(MARKER, '1');
-            hidden.add(element);
-            stats.pageAdHidden++;
-          });
+          doc.querySelectorAll(selector).forEach(function (element) { targets.add(element); });
         } catch (_) { /* Unsupported selectors must not interrupt page startup. */ }
+      });
+      if (bilibili) {
+        doc.querySelectorAll('.bili-video-card__info--ad').forEach(function (label) {
+          var card = label.closest('.feed-card') || label.closest('.bili-video-card');
+          if (card) targets.add(card);
+        });
+      }
+      hidden.forEach(function (element) {
+        if (!element.isConnected || !targets.has(element)) {
+          element.removeAttribute(MARKER);
+          hidden.delete(element);
+        }
+      });
+      targets.forEach(function (element) {
+        if (hidden.has(element)) return;
+        // An existing marker belongs to somebody else; never undo their state.
+        if (element.hasAttribute(MARKER)) return;
+        element.setAttribute(MARKER, '1');
+        hidden.add(element);
+        stats.pageAdHidden++;
       });
     }
 
@@ -235,9 +342,13 @@
           style = doc.createElement('style');
           style.id = 'jianlan-cleaner-style';
           style.textContent = '[' + MARKER + '="1"]{display:none!important}';
+          if (zhihu) style.textContent += ZHIHU_MOBILE_LAYOUT;
           if (win.MutationObserver) {
             observer = new win.MutationObserver(scheduleScan);
-            observer.observe(doc, { childList: true, subtree: true });
+            observer.observe(doc, {
+              childList: true, subtree: true, attributes: true,
+              attributeFilter: ['class', 'href', 'data-e2e', 'data-is-ad', 'data-type', 'feedtype', 'ad-data']
+            });
           }
           scan();
         }

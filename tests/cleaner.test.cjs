@@ -26,6 +26,12 @@ class Element {
   getAttribute(name) { return this.attrs.get(name) ?? null; }
   removeAttribute(name) { this.attrs.delete(name); }
   appendChild(child) { child.isConnected = true; child.parent = this; }
+  closest(selector) {
+    for (let element = this; element; element = element.parent) {
+      if (element.selector === selector) return element;
+    }
+    return null;
+  }
   remove() { this.isConnected = false; this.parent = null; }
 }
 
@@ -90,7 +96,7 @@ function makeWindow(host = 'www.douyin.com', fetchImpl = async () => new Respons
     clearTimeout(id) { timers.delete(id); },
     MutationObserver: class {
       constructor(fn) { this.fn = fn; this.active = false; observers.push(this); }
-      observe() { this.active = true; }
+      observe(target, options) { this.active = true; this.options = options; }
       disconnect() { this.active = false; }
     },
     flushMutation() {
@@ -204,6 +210,102 @@ test('Bilibili uses only marked DOM cleanup and leaves network APIs untouched', 
   assert.equal(win.XMLHttpRequest.prototype.open, originalOpen);
   assert.equal(ad.getAttribute('data-jianlan-hidden'), '1');
   assert.equal(normalVideo.hasAttribute('data-jianlan-hidden'), false);
+  win.__jianlanSetEnabled(false);
+});
+
+test('Bilibili advertising labels only hide a known containing card; orphan labels stay visible', () => {
+  const win = makeWindow('www.bilibili.com');
+  const card = new Element('.feed-card');
+  const label = new Element('.bili-video-card__info--ad');
+  card.appendChild(label);
+  const ordinary = new Element('.bili-video-card');
+  const orphan = new Element('.bili-video-card__info--ad');
+  win.document.elements.push(card, label, ordinary, orphan);
+  cleaner.install(win);
+  assert.equal(card.getAttribute('data-jianlan-hidden'), '1');
+  assert.equal(label.hasAttribute('data-jianlan-hidden'), false);
+  assert.equal(ordinary.hasAttribute('data-jianlan-hidden'), false);
+  assert.equal(orphan.hasAttribute('data-jianlan-hidden'), false);
+  assert.equal(win.__jianlanStats.pageAdHidden, 1);
+  win.__jianlanSetEnabled(false);
+  assert.equal(card.hasAttribute('data-jianlan-hidden'), false);
+});
+
+test('Zhihu targets explicit ad containers and app promotion while retaining reading, comments and authentication', () => {
+  for (const host of ['zhihu.com', 'www.zhihu.com', 'zhuanlan.zhihu.com']) {
+    const win = makeWindow(host);
+    const ads = ['.TopstoryItem--advertCard', '.MBannerAd', '.zhihuAdvert-MBanner', '.WeiboAd-wrap', 'div[data-type="ad"]'].map(selector => new Element(selector));
+    const promotion = new Element('.AppBanner');
+    const normal = ['.TopstoryItem', '.AnswerItem', '.Comments-container', '.SignFlow', '.Captcha', '.KfeCollection-Content'].map(selector => new Element(selector));
+    normal[0].textContent = '这是一篇讨论广告和下载 App 的正常文章';
+    win.document.elements.push(...ads, promotion, ...normal);
+    const nativeFetch = win.fetch;
+    const nativeOpen = win.XMLHttpRequest.prototype.open;
+    cleaner.install(win);
+    [...ads, promotion].forEach(element => assert.equal(element.getAttribute('data-jianlan-hidden'), '1'));
+    normal.forEach(element => assert.equal(element.hasAttribute('data-jianlan-hidden'), false));
+    assert.equal(win.fetch, nativeFetch);
+    assert.equal(win.XMLHttpRequest.prototype.open, nativeOpen);
+    assert.equal(win.__jianlanStats.version, '1.1.1');
+    win.__jianlanSetEnabled(false);
+    win.document.elements.forEach(element => assert.equal(element.hasAttribute('data-jianlan-hidden'), false));
+  }
+});
+
+test('Weibo .com and .cn hide explicit ad containers and app prompts without filtering posts, comments or login', () => {
+  for (const host of ['weibo.com', 'www.weibo.com', 'weibo.cn', 'm.weibo.cn']) {
+    const win = makeWindow(host);
+    const ads = [new Element('div[feedtype="ad"]'), new Element('#app .ad-wrap')];
+    const appPrompt = new Element('#app .woo-frame.blog-config-page div.weibo-btn-box');
+    const normal = ['.card', '.weibo-text', '.comment-list', '.login-box', '.Captcha'].map(selector => new Element(selector));
+    normal[1].textContent = '今天学习广告设计，评论区推荐一个 App';
+    win.document.elements.push(...ads, appPrompt, ...normal);
+    const nativeFetch = win.fetch;
+    cleaner.install(win);
+    [...ads, appPrompt].forEach(element => assert.equal(element.getAttribute('data-jianlan-hidden'), '1'));
+    normal.forEach(element => assert.equal(element.hasAttribute('data-jianlan-hidden'), false));
+    assert.equal(win.fetch, nativeFetch);
+    const controller = cleaner.install(win);
+    assert.equal(controller, win.__jianlanCleaner);
+    assert.equal(win.__jianlanStats.pageAdHidden, 3);
+    win.__jianlanSetEnabled(false);
+    win.document.elements.forEach(element => assert.equal(element.hasAttribute('data-jianlan-hidden'), false));
+    assert.equal(win.observers.some(observer => observer.active), false);
+  }
+});
+
+test('DOM rules stay isolated by site and do not match lookalike hostnames', () => {
+  for (const host of ['zhihu.com.evil.invalid', 'notzhihu.com', 'notweibo.cn', 'weibo.cn.evil.invalid', 'example.com']) {
+    const win = makeWindow(host);
+    const candidates = [new Element('.AppBanner'), new Element('div[feedtype="ad"]'), new Element('.ad-report')];
+    win.document.elements.push(...candidates);
+    const nativeFetch = win.fetch;
+    cleaner.install(win);
+    candidates.forEach(element => assert.equal(element.hasAttribute('data-jianlan-hidden'), false));
+    assert.equal(win.__jianlanStats.pageAdHidden, 0);
+    assert.equal(win.fetch, nativeFetch);
+    assert.equal(win.document.styles.length, 0);
+  }
+  const weibo = makeWindow('m.weibo.cn');
+  const zhihuPromotion = new Element('.AppBanner');
+  weibo.document.elements.push(zhihuPromotion);
+  cleaner.install(weibo);
+  assert.equal(zhihuPromotion.hasAttribute('data-jianlan-hidden'), false);
+  weibo.__jianlanSetEnabled(false);
+});
+
+test('recycled DOM nodes become visible when their ad marker changes to ordinary content', () => {
+  const win = makeWindow('m.weibo.cn');
+  const recycled = new Element('div[feedtype="ad"]');
+  win.document.elements.push(recycled);
+  cleaner.install(win);
+  assert.equal(recycled.getAttribute('data-jianlan-hidden'), '1');
+  assert.equal(win.observers[0].options.attributes, true);
+  assert.ok(win.observers[0].options.attributeFilter.includes('feedtype'));
+  assert.equal(win.observers[0].options.attributeFilter.includes('data-jianlan-hidden'), false);
+  recycled.selector = '.normal-feed-card';
+  win.flushMutation();
+  assert.equal(recycled.hasAttribute('data-jianlan-hidden'), false);
   win.__jianlanSetEnabled(false);
 });
 
